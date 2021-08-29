@@ -1,0 +1,1208 @@
+Linux
+Install linux iso in VBox
+
+How to locate ISO
+Go to settings ---- Storage ----select cd/dvd
+mount /dev/cdrom /mnt/cdrom
+mv * /mnt/cdrom /media  -----------as mnt is a temp data storage
+
+how to create yum repos
+vi /etc/yum.repos.d/rhel7.repo
+[RHEL7]
+name=RHEL7 YUM REPO
+baseurl=file:///media/
+enabled=1
+gpgchek=1
+gpgkey=file:///media/RPM-GPG-KEY-redhat-release
+
+how to use yum
+yum install firefox
+
+how to install packages
+cd /media/Packages
+yum install packagename
+
+how to configure network ifconfig
+yum install NetworkManager
+yum install net-tools
+
+vi /etc/sysconfig/netowrk-scripts/ifcfg-enp0s3
+onboot - yes
+
+vi /etc/hosts
+192.168.1.4 localhost atul(hostname)
+
+how to install vmbox iso and then connect share folder
+attach iso for vbox in linux
+mount /dev/cdrom /mnt/cd
+search for VBoxLinuxaddition.run
+
+yum install kernel
+yum install dkms binutils gcc make patch libgomp glibc-headers glibc-devel kernel-headers
+yum install kernel-devel
+./VBoxLinuxaddition.run
+cd /home/linux2 -------- will show the data in share folder
+
+How to unzip tar.gz file
+tar -xvf file name
+location ----/home/linux2/server/
+
+how to install db2
+./db2prereqcheck
+./db2_install
+
+how to resolve errors
+sestatus -- should be disabled ----
+vi /etc/selinux/config
+change status to disabled
+setenforce 0
+getenforce -- disabled
+reboot
+
+yum install lib*
+yum install gcc*
+yum install kernel*
+yum install ksh
+yum install perl-Sys-Syslog
+
+
+-----------------------------------
+also to adjust space
+first increase the size in vb
+df -h
+vgs
+lsblk
+fdisk -l
+fdisk /dev/sda
+option n
+option p -----
+option t
+option 8e
+reboot system
+pvcreate /dev/sda3
+vgdisplay
+vgextend rhel /dev/sda3
+vgdisplay
+lvdisplay
+pvscan
+lvextend -L+20G /dev/rhel/root
+lvdisplay
+vgdisplay
+xfs_growfs /dev/rhel/root
+reboot
+
+it will increase the size
+ ----------------------------------------------------
+
+cd /home/linux2/server
+.db2_install
+
+
+how to deinstall db
+cd /opt/ibm/db2/V10.5/instance
+./db2idrop db2inst4
+cd /opt/ibm/db2/V10.5/install
+./db2_deinstall -a
+rm -fR /opt/ibm/db2/V10.5
+userdel -r db2inst4
+
+
+
+
+-------------------------------------------------------
+
+DB2
+
+Create instance in root dir
+groupadd db2grp
+useradd db2inst1 -d /home/db2inst1
+cd /opt/ibm/db2/V10.5/Instance
+./db2icrt -p 60003 -u db2inst1 db2inst1
+
+How to remove user
+userdel -r db2inst1 (it will delete user from /home as well)userdel db2inst1 (only delete user)
+
+how to remove dir from home after removing user
+userdel db2inst1
+rm -rf db2inst1
+
+how to delete group
+groupdel db2grp
+
+how to change modification restrictions
+chmod 777(defines wrx) db2inst1 (or any file name)
+
+how to check mod
+ls -ld /home/db2inst1
+
+how to change authorization of uid and gid 
+chown db2inst1(uid):db2grp(gid) /home/db2inst1
+
+to give authorization to all the files in directory
+chown db2inst1(uid):db2grp(gid) storage path memory
+
+
+login and start stop
+su - db2inst1
+db2start
+db2stop // db2stop force //db2 terminate
+exit
+
+to drop instance
+db2idrop db2inst1
+
+To check db2 inst
+db2ilist
+
+To check db2 version
+db2ls
+db2ls -q -p -b /opt/ibm/db2/V10.5
+db2ls -q -a -b /opt/ibm/db2/V10.5
+ 
+To check db2inst path
+cd /var/db2/global.reg
+db2grep -dump
+
+to create activate deactivate database
+db2 create database/db Test
+db2 activate database/db Test
+db2 deactivate database/db Test
+
+DB creation
+3 diff directories
+sqldbdir (local db directory)
+dbname ==> storage
+sqlxxxxx ==> db id ==> configuration info ==> integrity
+
+to find storage directory for specific db
+db2pd - db testdb -storagegroups 
+
+To check processes
+Instance - ps -ef | grep -i db2
+database - db2pd -edus
+
+To change state of db2agent or process
+db2 connect to test
+db2 connect reset
+
+To list parameters in dbm and db configuration (delayed value always shown in the commands)
+dbm - db2 get dbm cfg | more
+db  - db2 get db cfg for test | more
+
+to  reset dbm cfg
+db2 reset dbm cfg
+
+To list all db directory
+db2 list db directory
+
+To update dbm 
+db2 update dbm cfg using diaglevel 4 (current value will be 4)
+
+to check any parameter state in dbm
+db2 get dbm cfg | grep -i diaglevel
+
+To check if parameter has been updated or not 
+first attach to instance
+db2 attach to db2inst1
+
+then
+db2 get dbm cfg show detail | more 
+db2 get dbm cfg show detail | grep -i parameter
+always match current and delayed value (should be same) if not restart db2 instance or database
+current value --- value in memory
+delayed value --- value in harddisk
+
+values should be same
+restart db to update
+
+Online parameters will be updated immidiately// offline parameters may not so restart instance or db
+
+db2 instance memory is allocated total memory in gb to instance 
+divided in 4:1 ratio between database and app memory cache memory
+
+each page is of 4kb
+always update instance memory manually to avoid any descripency 
+
+to monitor memory size in Instance parameter
+db2pd -dbptnmem
+
+To access multiple parameters
+db2 get dbm cfg | grep 'tcp|sheap|instres'
+
+Collating sequence in DB
+db2 get db cfg test | more
+
+whenever we create any group 
+db2 create db test1 -------- default codeset utf-8 which is a unicode type database
+
+db2 create db nonuni using codeset iso-8542-15 territory IN
+will create a db in in region with codeset iso854215
+once unicode or nonunicode is gvn cant be changed
+
+unicode db will not have any alt collating sequence
+nonunicode db can have alt collating sequence which is actualy a unicode...helps to enter unicode format tables in nonunicode 
+unicode database takes ore bytes than nonuni
+
+collating sequence test case
+
+how to create a script
+cat > filename.sql
+vi unitestt.sql (filename.sql)
+connect to nonuni (db);
+create table uni(id int,name varchar(6));
+insert into uni values(1,'ssdd'));
+export to uni.ixf of ixf select * from uni;
+import from uni.ixf of ixf insert into uni;
+select * from uni;
+connect reset;
+
+connect to test
+create table uni(id int,name varchar(12)); /// as test is unicode so provide higher space 
+import from uni.ixf of ixf insert into uni;
+select * from uni;
+connect reset;
+
+so the script name is unitest.sql
+
+how to run script
+db2 -tvf unitest.sql | tee unitest.out
+
+how to check outcome
+cat unitest.out | more
+
+script to stop the created tables
+cat > xyz.sql
+connect to test;
+drop table uni;
+
+connect to nonuni;
+drop table uni;
+ 
+
+
+Self_tunning_mem ------ db cfg parameter
+
+db2 get db cfg for test | grep -i self_tun
+
+helps in memory sharing automatically.... 
+it enables consumers.. bufferpool locklist package cache sortheap and database mem
+
+it only activates if 2 or more consumers are active
+possible states
+off --- if it is inactive
+on (active) -- if 2 or more consumers active
+on (inactive)-- if less than 2 on none consumers active
+
+to check ... connect to db test and then db2 get db cfg | grep -i self_tun
+
+
+database_memory ----- sum of real and swap mem ///cannt be higher than instance mem
+can be set automatically or manually
+
+db_mem_thershold ---- always release 10% of the db memeory to os 
+defaul and 100 value is not good as doesnt release anything to os
+setting the value to 10 always keeps the memory balance
+
+
+Package cache is the memory where action plans are stored
+sort heap size determines the access path
+
+To restart Db after updating db parameter
+first 
+db2 update db cfg for test using logarcmeth1 logretain
+db2 backup db test (offline)
+db2 restart db test
+
+Tablespaces ---- works as containers to store files
+when a table is created it will have 3 tablespaces by default... syscatspace tempspace1 and userspace1
+
+to create table 
+db2 connect to db test
+db2 "create table test1(id int)"
+db2 list tablespaces show detail | more    will show all tablespaces within db
+
+to create table and store it to perticular tablespace
+db2 create tablespace ts3
+db2 "create table test2(id int) in ts3"
+
+extentsize - defines the number of pages one container can use at a time for a file
+if extentsize is 2 it means it will store a file in container 1 using 2 pages and then will move to next container and so on..and will comme back to first container once all containers are used
+ 
+prefetchsize -  defines number of pages fetched at a time
+number of extensize * number of containers = prefetchsize
+2*2 = 4 it will read four pages at a time
+
+backup and restore
+
+to take backup 
+offline ---- db2 backup db test to (location)
+online ----- db2 backup db test to (location) include logs
+
+application needs to be stop before taking backup
+online backup takes more time than offline
+
+types of backups
+incremental backup ---- changes since last full backup
+cummulative backup which keeps adding the new changes to the prev changes 
+ex full back was taken on sunday so on monday the changes will be added to prev day and on tue it will show all the changes from monday till tue
+while restoring only saturday and full back needs to be restored
+
+delta backup ----changes since last backup
+it only backup the changes made everyday
+while restoring have to take back up of full back and days backup
+
+
+Two recovey techq
+1 restart/crash recovery --- at db restart time without admin intervention
+db was not shutdown properly however containers still functional
+unit of recovery db
+db cfg 
+autorestart yes
+
+2 restore and rollfwd
+started by admin consist of 2 commands or combined as one
+if data is destroyed
+unit of recovery db or single tbspace
+
+restore db and apply log files
+
+rollfwd and recovery
+db2 restore db 
+db2 list history backup
+db2tapemgr db  retrieve
+db2 rollforward db  to  path
+db2 rollforward db  stop
+
+history file avail for backup
+db2 list history backup all for test 
+
+to restore history file
+db2 restore db test history file 
+
+manually
+1 image on disk --- db2ckbkp - H backup file
+2 image in tsm server === db2adutl query
+
+incremental and delta backup restore
+seq full then incermental than delta
+
+to determine image needed to restore
+db2ckrst -d test -t (timestamp_friday_backup) 
+it just shows the info...sql needs to be executed
+
+to restore correct seq of backup auto
+db2 "restore database test incremental automatic from /db2/test/backup taken at timestamp
+
+whenever data is restored whichever backup is last stored..history of the backup data is restored first then full inc and delta 
+so on both the commands above 4 statementswill be there
+
+to check the details
+db2 list utilities show detail
+
+rollforw scenerios
+until last log
+db2 rollforward database test to end of logs 
+
+to a certain timestamp
+db2 rollforward database test to <time> using local time
+
+db2 "rollforward database test to 2012-03-26-13.46.00 using local time"
+
+to check query status
+db2 rollforward database test query status	
+check for status --- if not pending db is accessible
+                     if peding or working continue applying log files
+
+to restore database
+db2 restore database test to end of logs
+
+it does 3 tasks restore + rollfwd + db activation
+
+limitations
+should have latest history file uptodate
+doesnt work with incremental and delta backup images
+
+to check all the databases
+db2 list db directory
+
+to take backup
+db2 deactivate db test2
+db2 connect to test2
+db2 update db cfg for test2 using logarchmeth1 logretain  logarchmeth1 should be retain
+db2 backup db test2 (offline)
+db2 backup db test2 online
+
+db2 backup db test2 online include logs
+db2 backup db test2 online exclude logs
+
+to take incremental and delta backup
+db2 update db cfg for test2 using trackmod     trackmod parameter to be on
+db2 backup db test2 online
+
+
+To take backup of log
+db2 backup db test2 online incremental
+&
+db2 backup db test2 online incremental delta
+
+ls -ltr ----------- will show all the backups without much detail
+db2 list history backup all for test2 ------- will give detail
+file name 20200513200525 actually shows the time and date of the backup
+online       N
+offline      F
+incremental  O
+delta        E
+
+if the history command is corrupt or to check detail of image
+
+db2ckbkp -H image name
+ backup mode - 0 offline
+	       1 online
+also it gives info about the path data is stored
+
+offline backup has include logs 0 value
+
+
+to check utilities
+db2 list utilites ------ if it doesnt work
+open a new page
+first run db2top -d test2
+press u for utilities
+
+and then run db2 backup db test2
+it will show on the db2top page 
+
+
+Restore and rollfwd
+
+types of backups offline and online
+
+---database in circular logging-- where logarchmeth1 off---- only offline backup can be done
+offline backup is not recommended
+
+To restore offline backup in circular logging
+db2 deactivate db sample
+logarchmeth1 should be off 
+db2 backup db sample
+db2 connect to sample
+db2 "create table t5(id char(20))"
+db2 restore db sample
+db2 list tables all | grep -i t5
+it will not show the table as the backup was taken before the table was created
+so circular logging is not recommended
+
+to restore backup in archive logging : online
+mk dir archlogs in /home/db2inst1
+db2 update db cfg for sample using logarchmeth1 'Disk:/home/db2inst1/archlogs'
+db2 backup db sample
+db2 "create table tt(id char(20))"
+db2 backup db sample online
+db2 connect to sample
+db2 "create table tt1(id char(30))"
+db2 connect to sample
+db2 restore db sample taken at time(from ls -ltr)
+db2 connect to sample ---- it will give error roll-fwd
+db2 rollforward db sample to end of logs and stop
+
+always rollfwd the logs after restore on online backup otherwise data will be lost
+END OF LOGS IN ROLL FWD is used to restore all the data from the disk
+
+to restore incremental/delta backup
+db2 restore db home incremental automatic taken at (time)
+
+To check list of tables
+db2 list tables for all | egrep -i 'tt|tt1'
+
+To restore backup of logs only
+mkdir target logs in /home/db2inst1
+db2 backup db sample online include logs
+db2 connect to sample
+db2 "restore db sample taken at time logtaget '/home/db2inst1/targetlogs'"
+db2 connect to sample
+db2 "rollforward db sample to end of backup and stop"
+db2 list tables for all | egrep -i 'tt|tt1'
+
+END OF BACKUP is used in case of testing and refreshing of data not to take full backup
+
+to rollforward back at a perticular timestamp
+db2 restore db sample online
+db2 "rollforward db sample to 2020-05-14-01.20 using local time and stop"
+db2 connect to sample
+db2 list tables for all | egrep -i 'tt|tt1'
+
+2020-05-14-01.20 should be higher than restore time always
+
+To insert value in a table
+db2 connect to db
+db2 "insert into uni values(1, 'ee')"
+db2 "insert into emp select * from atul"
+
+to export value from a table
+db connect to db
+db2 "export to uni.ixf of ixf select * from attendance"
+
+u can select few columns as well instead of * (all)
+
+to import value from a table
+db2 "import from uni.ixf of ixf insert into test1"
+
+to load value from a table
+db2 "load from uni.ixf of ixf replace into test1"
+db2 "set integrity for test1 all immidiate unchecked"
+
+diff btw import and load utility
+import is slow when moving large data
+create tables and indexes supported in ixf
+import into tables views alliases
+allow write access
+triggers fired,constaraints enforced
+
+load is faster 
+tables and indexes should exist before moving
+load into tables only
+existing data can be seen by read app
+triggers not fired, check constrainsts via set integrity
+
+Utility --- tools helps to maintain db
+ex move,export,import,check,copy etc
+
+Transaction begins with read/write and it ends with a commit or rollback statement
+
+commit statement--- commits the changes made during current trans, making changes permanent
+db2 holds or release locks that are acquired on behalf of an application process
+
+rollback statement ---- cancel or backout the database changes and restore changes back to original state 
+
+
+
+===========
+db2 5 imp parameters 
+============
+server name/ip address -- server1/10.192.25.123
+port - 50000
+dbname - test
+username - linux23/root
+password - passowerd
+
+these thngs helps developer to connect db with application
+
+
+DB is repository 
+db2 is single process at high level with multi thread architechture
+db2sysc
+
+logical structures
+
+db2 page (4k) ---leeds to---extent (combination of page) ----tablespace (combi of extent)--- database (combi of tbsp)
+
+physical structures
+
+os block and container (.dba files)
+
+data gets stored in tablespaces
+
+page--extent--container--tablespace--db
+
+
+
+------
+to connect user with db
+keep username and password ----- ex  user atul and password
+connect to database- -- 
+db2
+db2start
+connect to test
+grant connect on database to user atul
+
+-------------------------------------
+federation
+
+To connect 2 instances from the same machine or diff machine and transfer data
+open two terminals
+db2inst1                                           db2inst2
+connect to db testdb1                              connnect to db tinku
+                                                   create table tt1(c1 char(30))
+                                                   insert into tt1 values('i am done')
+                                                   check ip of db2inst2 192.168.1.
+                                                   
+Step 1 pre requisite                                              Follow step 1 for db2inst2
+db2 get dbm cfg | grep FEDERATED                   
+db2 update dbm cfg using FEDERATED yes
+db2stop
+db2start
+db2 get dbm cfg | grep SVCENAME (60000)
+db2pd -edus | grep db2tcpcm (should show value)
+if doesnt--- db2stop and then db2start
+db2tcpcm is a process should run
+in case of 2 diff rhel box
+add ips in /etc/hosts file on both machines
+192.168.1.4 dbserver1
+192.168.1.8 dbserver2
+should be able to ping servers from each ohter
+--------------------------------
+if firewall running---
+go to root
+systemctl status firewalld
+systemctl disable firewalld  (will not enable it on reboot)       
+service firewalld stop       (if only this service is used//activate firewall on reboot)
+-----------------------------
+
+Step 2                                            Follow step 2 and 3 for 2way communiction
+
+db2 list node directory
+db2 "catalog tcpip node tcpfed remote 192.168.1.4 server 60001"
+db2 list node directory
+db2 "catalog database tinku as tinku at node tcpfed"
+db2 "list db directory" it will show tinku as remote
+db2 "connect to tinku user db2inst2 using password"
+db2 "select * from tt2"
+
+As step 2 req password and username again
+
+Step 3
+connect to testdb1
+create wrapper drda
+create server FED1 type db2/udb version 10.5 wrapper drda authorization "db2inst2" password "password" options (DBNAME 'TINKU')
+create user mapping for db2inst2 server fed1 options (remote_authid 'db2inst2' , remote_password 'password')
+select * from FED1.db2inst2.tt2
+
+To create alliase name
+create nickname t1_tdb for FED1.db2inst2.tt2
+select * from t1_tdb --- will show the table
+
+
+
+Below schema needs to be added :-     
+
+select substr(WRAPNAME,1,20) as WRAPNAME,WRAPTYPE,WRAPVERSION,substr(LIBRARY,1,20) as LIBRARY from syscat.wrappers
+select substr(WRAPNAME,1,20) as WRAPNAME,substr(SERVERNAME,1,20) as SERVERNAME,substr(SERVERTYPE,1,10) as SERVERTYPE,substr(SERVERVERSION,1,5) as SERVERVERSION from syscat.servers
+select substr(WRAPNAME,1,20) as WRAPNAME,substr(SERVERNAME,1,20) as SERVERNAME,CREATE_TIME,substr(OPTION,1,20) as OPTION,substr(SETTING,1,15) as SETTING,SERVEROPTIONKEY from syscat.serveroptions
+select substr(AUTHID,1,20) as AUTHID,substr(SERVERNAME,1,20) as SERVERNAME,substr(OPTION,1,20) as OPTION,substr(SETTING,1,15) as SETTING from syscat.useroptions
+select substr(TABSCHEMA,1,15) as TABSCHEMA,substr(TABNAME,1,15) as TABNAME,substr(OPTION,1,20) as OPTION,substr(SETTING,1,10) as SETTING from syscat.taboptions 
+------
+To upgrade db2 versiond
+------
+db2ls and db2 level shows current version and path
+
+only one instance needs to be used
+first download latest version and mount in on /mnt/cdrom
+then extarct and install new version db2 11 without creating any instance
+stop all insances on prev version
+go to /opt/ibm/db2/V11.0/instances
+run ./db2update file
+db2ls and db2level - v should show updagraded version of db2
+then db2 update -u db2inst1 db2inst2 
+connect to instances and check version
+db2 update databases one by one on the instances 
+
+
+-----------
+HADR backup from primary to secondary
+-----------
+req primary and standby hosts
+primary machine from where backup needs to be taken
+standby machine where needs to restore
+in etc/hosts file needs to add ip for both machines 192.168.1.4 192.168.1.7
+in etc/servicws file needs to add port numbers along with names ex htest1 60004 htest2 60005
+create dir /mnt/storage/hadr on both machines
+in hadr mkdir storage backups alogs dbpath on both machines
+chmod 777 hadr
+ls 
+chown db2inst1/2 depending on instance number
+chown db2inst1/2:db2iadm1 storage backups dbpath alogs
+
+primary
+create database htest on '/mnt/storage/hadr/storage' DBPATH on '/mnt/storage/hadr/dbpath'
+db2 update db cfg for htest using logarchmeth1 "Disk:/mnt/storage/hadr/alogs"
+db2 connect to db htest --- which will fail
+db2 bakup database htest to /dev/null
+db2 connect to db htest
+db2 create table t1
+db2 inser into t1 values
+
+note the ip for both machines
+primary                                                                                     
+db2 update db cfg for htest | all the parmeters in hadr host column                        
+locat host -- 	primary ip
+locat port --   htest1
+remote host --  standby ip
+remote port --  htest2
+remote inst --  db2inst2
+logindex --  on
+db2 hadr  -- on
+db2 standby -- ur
+
+db2 update db cfg for htest using hadr_local_host 192.168.1.15
+db2 update db cfg for htest using hadr_local_svc htest1
+db2 update db cfg for htest using hadr_remote_host 192.168.1.14
+db2 update db cfg for htest using hadr_remote_svc htest2
+db2 update db cfg for htest using hadr_remote_inst db2inst
+db2 update db cfg for htest using logindexbuilt on
+db2set db2_hadr_ros=on
+db2set db2_standby_iso=ur
+
+
+secondary 
+locat host -- 	standby ip
+locat port --   htest2
+remote host --  primary ip
+remote port --  htest1
+remote inst --  db2inst1
+logindex --  on
+db2 hadr  -- on
+db2 standby -- ur
+
+db2 update db cfg for htest using hadr_local_host 192.168.1.15
+db2 update db cfg for htest using hadr_local_svc htest1
+db2 update db cfg for htest using hadr_remote_host 192.168.1.14
+db2 update db cfg for htest using hadr_remote_svc htest2
+db2 update db cfg for htest using hadr_remote_inst db2inst3
+db2 update db cfg for htest using logindexbuilt on
+db2set db2_hadr_ros=on
+db2set db2_standby_iso=ur
+
+db2 terminate
+db2stop ; db2start
+
+ON Primary machine
+go to cd /mnt/storage/hadr/backups
+db2 backup database htest to /mnt/storage/hadr/backups
+scp * db2inst5@192.168.1.11:/mnt/storage/hadr/backups
+
+secondary machine
+login to inst
+cd /mnt/storage/hadr/backups
+ls -l ------------will show the backup taken and transfered
+db2 restore database htest from /mnt/storage/hadr/backups taken at time
+db2 list utilities show detail on diff terminal will show progress
+
+check paramters
+db2 get db cfg for test | grep -i pending
+db2 get db cfg for test | grep -i hadr
+
+db2 update db cfg for htest using hadr_local_host 192.168.1.14	
+db2 update db cfg for htest using hadr_local_svc htest2
+db2 update db cfg for htest using hadr_remote_host 192.168.1.15
+db2 update db cfg for htest using hadr_remote_svc htest1
+db2 update db cfg for htest using hadr_remote_inst db2inst3
+db2 update db cfg for htest using logindexbuilt on
+db2set db2_hadr_ros=on
+db2set db2_standby_iso=ur
+
+db2 terminate
+db2stop ; db2start
+db2 connect to htest  ----- in rollforward as standby machine
+db2 start hadr on db htest as standby
+--------------------
+IMP command
+db2pd -db htest -hadr
+to check details 
+standy will show disconnected if no primary machine is on with hadr
+--------------------
+ON Secondary
+connect to htest --- in rollforward state
+db2 deactivate db htest
+db2 stop hadr on database htest
+db2 start hadr on database htest as standby
+
+ then ON Primary 
+db2 deactivate db htest
+db2 start hadr on database htest as primary
+
+                                                   To check any error
+                                                     db2 "? SQLxxxx"
+                                                   To check diaglog
+                                                    go to dump dir in sqllib and run tail -f db2diag.log
+
+primary will show connected and peer
+
+------------
+On secendory rhel1                on primary db2server
+connect to htest               connect to htest
+select * from t1               insert into t1 values()
+
+---------------------------------
+HADR from secondary to primary
+------------------------------------
+
+login on standy host
+db2 takeover hadr on db htest
+
+db2pd -db htest -hadr
+will show primary
+
+login on original host 
+db2pd - db htest -hadr
+will show standby
+
+
+------------
+order to stop
+----------
+standby
+db2 deactivate db htest
+db2 stop hadr on db htest
+db2pd -htest -hadr
+
+primary
+db2 stop hadr on db htest
+db2pd -htest -hadr
+
+
+-----
+if primary host crashes
+-------
+login on primary host
+db2stop force
+
+login on standby host
+db2 takeover hadr on db htest by force
+db2pd -htest -hadr
+now standy become primary but in disconnnected state
+
+fix the issue on other machine
+it will be standby now
+
+another restore command to store at specific location
+db2 restore db htest on '/mnt/storage/htest/temp1' dbpath on 'mnt/storage/htest/dbpath_1' from 'mnt/storage/hadr/backups' taken at time
+
+
+------------------
+lock and concurrency
+------------------
+db2 perfoms locking depending on diff isolation levels
+. Uncommited read (UR) -- dirty read, fuzzy read and phantom read possible
+. Cursor Stablity (CS) default --- fuzzy and phantom
+. Read Stability (RS) --- phantom
+. Repeatable read (RR) -- no transaction anomolies
+
+locking and concurrecy inversly proportional
+
+
+Anomolies:- 
+
+lost updates: will nvr come for any db2 isolation level
+
+clifford (CS)                         ravi (CS)
+read a=> 10 
+update a =11
+                                      read a <=11
+.....                                 updae a from 11 to 12
+.....                                 commit
+'''''
+commit
+
+the value will be 12 then coz ravi commit earlier
+
+
+2) Dirty reads
+a=10
+
+clifford                                     ravi
+read a => 10                            
+update a to 11 
+...                                        read a <= 10 or 11
+....
+....
+commit
+
+imp:-- db2 +c logs in without commit auto..so after updating data alway do commit or rollback to reach old value
+Values current isolation --- helps to find isolation level
+
+
+3) non repeatable read -- transaction that reads data doesnt see the same data which it had earlier, fuzzy read
+4) phantom reads -- shows data and updated rows and values
+
+
+db2pd -db testdb1 -dlocks/locktime/wlocks will show details
+db2 list applications
+db2 "force application ()"
+
+UR --- if app A updates anything in the same instance but doesnt commit//app b can
+       view using select * from t3 with UR /// lowest isolation highest concurrency
+       
+CS --- default///auto commit//
+
+RS ---- if app A reads the table with command select * from t3 with RS//
+        app B can only read the info as the row is locked until it is released//
+        cnt update the value app B
+
+set isolation RR
+values current isolation
+
+values current lock timeout = -1 means app B has to wait for infinite times
+set lock timeout = 30 (seconds)
+db2 get db cfg for testdb1 | grep -i lockout
+it will give error 911 after 30 seconds in lockout reason code 68//// 
+situation where sm1 from app a is using the same row or table and used RR RS so that no one else can update
+
+Deadlock --- same condition however transaction is rolled back due to deadlock 
+911 reason code 2
+db2 get db cfg for testdb1 | grep -i dlchk
+db2pd -edus | grep -i db2dlock
+db2pd -db testdb1 -wlocks
+db2 get db cfg for testdb1 | grep - locklist
+
+
+------------------
+troubleshooting locks
+-------------------
+Terminal 1
+login as root
+useradd -d /home/db2user1/db2user1
+passwd db2user1
+su - db2inst1
+db2
+connect to testdb1
+create table t4(c1 int)
+insert into t4 values (250)
+grant connect on database to user db2user1
+grant select on t4 to user db2user1 
+terminate
+db2 +c
+connect to testdb1
+lock table t4 in exclusive mode
+
+Terminal 2
+login with db2user1
+. /home/db2inst1/sqllib/db2profile
+db2
+connect to testdb1
+list tables for schema db2inst1
+select * from db2inst1.t4
+will not show the records
+
+=====
+troubleshoot
+=====
+terminal 3
+login as db2inst1 (DB admin)
+db2 list applications
+db2top -d testdb1
+press U and then a with 305 (process id unable to access)
+db2pd -db testdb1 -wlocks
+db2
+connect to testdb1
+SELECT AGENT_ID, substr (TABNAME, 1, 30) TABNAME, LOCK_OBJECT_TYPE, LOCK_MODE, LOCK_STATUS FROM TABLE(SNAP_GET_LOCK('', -1)) as T where TABNAME IS NOT NULL
+this is to check details about process
+
+terminate
+db2 "force application (287)" 
+will stop the process which was blocking the data to trnsfr
+
+terminal 2 will show the info on db2user1
+table value
+
+
+
+
+db2 "insert into stock values(1,'lcd','samsung','black')"
+db2 "insert into stock values(2,'mobile','vivo','blue')"
+db2 "insert into stock values(3,'remote','lg','white')"
+db2 "insert into stock values(1,'fridge','whirlpool','metallic')"
+db2 "insert into stock values(1,'washing machine','voltas','green')"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
